@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Vocabulary AR Game - Multiplayer & BGM</title>
+    <title>Fruit Vocabulary AR Game - Multiplayer</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -17,6 +17,7 @@
             background-color: #bae6fd;
         }
 
+        /* สไตล์เยลลี่ 3D และ Animation */
         .jelly-btn {
             border-radius: 30px;
             border: 4px solid white;
@@ -68,31 +69,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 </head>
 <body class="w-screen h-screen relative select-none">
 
-    <video id="video-input" class="absolute w-0 h-0 opacity-0 pointer-events-none" autoplay playsinline muted></video>
+    <video id="video-input" class="hidden" autoplay playsinline></video>
     <canvas id="bg-canvas" class="absolute top-0 left-0 w-full h-full z-0 object-cover"></canvas>
 
     <div id="ar-cursor" class="fixed w-20 h-20 pointer-events-none z-[100] transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 transition-opacity duration-300">
         <span class="text-5xl drop-shadow-lg">✨</span>
         <svg class="absolute inset-0 w-full h-full" style="transform: rotate(-90deg);">
-            <circle cx="40" cy="40" r="36" stroke="#ec4899" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226" id="hover-ring" />
+            <circle cx="40" cy="40" r="36" stroke="#ec4899" stroke-width="6" fill="none" stroke-linecap="round"
+                    stroke-dasharray="226" stroke-dashoffset="226" id="hover-ring" />
         </svg>
     </div>
 
     <div class="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
         
-        <div id="screen-loading" class="flex flex-col items-center pointer-events-auto bg-white/90 p-8 rounded-[30px] border-4 border-white shadow-xl max-w-[90%] z-50">
+        <div id="screen-loading" class="flex flex-col items-center pointer-events-auto bg-white/80 p-8 rounded-[30px] border-4 border-white shadow-xl max-w-[90%]">
             <div class="text-6xl mb-4 anim-bounce">🤖</div>
-            <h1 class="text-3xl md:text-4xl font-bold text-sky-600 text-center mb-4">ระบบพร้อมแล้ว!</h1>
-            <p class="text-lg text-gray-600 text-center mb-6">กรุณากดปุ่มด้านล่างเพื่อเปิดกล้อง</p>
-            
-            <button id="btn-request-camera" class="jelly-btn bg-green-500 text-white font-bold text-2xl md:text-3xl px-8 py-4 mb-2">
-                📸 อนุญาตใช้กล้อง
-            </button>
-            <p id="camera-error-msg" class="text-red-500 text-center mt-2 hidden text-sm font-bold"></p>
+            <h1 class="text-3xl md:text-4xl font-bold text-sky-600 text-center mb-2">กำลังเตรียมระบบ AI...</h1>
+            <p class="text-xl text-gray-600 text-center">กรุณากดยอมรับการใช้กล้อง (Allow Camera) เพื่อเริ่มเล่น</p>
         </div>
 
         <div id="screen-start" class="hidden flex-col items-center pointer-events-auto max-w-[90%]">
@@ -104,4 +102,352 @@
             </button>
         </div>
 
-        <div id="screen-
+        <div id="screen-mode" class="hidden flex-col items-center pointer-events-auto bg-white/90 p-6 md:p-10 rounded-[40px] border-4 border-white shadow-xl max-w-[95%]">
+            <h2 class="text-4xl md:text-5xl font-bold text-purple-500 mb-6 text-center">เลือกจำนวนผู้เล่น/ทีม 🏆</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <button class="btn-mode jelly-btn bg-pink-400 text-white font-bold text-3xl py-4 px-6" data-mode="1">1 ทีม</button>
+                <button class="btn-mode jelly-btn bg-sky-400 text-white font-bold text-3xl py-4 px-6" data-mode="2">2 ทีม</button>
+                <button class="btn-mode jelly-btn bg-green-400 text-white font-bold text-3xl py-4 px-6" data-mode="3">3 ทีม</button>
+                <button class="btn-mode jelly-btn bg-purple-400 text-white font-bold text-3xl py-4 px-6" data-mode="4">4 ทีม</button>
+                <button class="btn-mode jelly-btn bg-orange-400 text-white font-bold text-3xl py-4 px-6" data-mode="5">5 ทีม</button>
+                <button class="btn-mode jelly-btn bg-red-400 text-white font-bold text-3xl py-4 px-6" data-mode="6">6 ทีม</button>
+            </div>
+        </div>
+
+        <div id="screen-setup" class="hidden flex-col items-center pointer-events-auto bg-white/95 p-6 md:p-8 rounded-[40px] border-4 border-white shadow-xl max-w-[95%] w-full md:w-2/3 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <h2 class="text-3xl md:text-4xl font-bold text-sky-500 mb-4 text-center">ตั้งชื่อและเลือกตัวละคร ✨</h2>
+            <div id="setup-container" class="w-full flex flex-col gap-3 mb-6"></div>
+            <button id="btn-setup-ready" class="jelly-btn bg-green-400 text-white font-bold text-3xl px-12 py-4">
+                พร้อมลุย! 🚀
+            </button>
+        </div>
+
+        <div id="screen-intermission" class="hidden flex-col items-center justify-center pointer-events-auto w-full h-full bg-black/40 backdrop-blur-sm z-40">
+            <div class="flex flex-col items-center bg-white/95 p-8 rounded-[40px] border-4 border-white shadow-2xl anim-pop">
+                <div id="intermission-avatar" class="text-7xl mb-4">🐰</div>
+                <h2 class="text-4xl md:text-5xl font-bold text-purple-600 mb-2">ตาของทีม: <span id="intermission-name">BNS 1</span></h2>
+                <p class="text-2xl text-gray-600 mb-8">เตรียมตัวให้พร้อม!</p>
+                <button id="btn-start-round" class="hand-interact jelly-btn bg-yellow-400 text-white font-bold text-4xl px-12 py-5">
+                    START! 🏁
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden w-full h-full relative">
+            <div class="absolute top-0 w-full p-2 md:p-4 flex flex-col gap-2 z-30 pointer-events-none">
+                <div class="flex justify-between w-full">
+                    <div class="bg-white/90 border-4 border-purple-300 rounded-full px-4 py-1 md:py-2 shadow-md flex items-center gap-2 text-lg md:text-2xl font-bold text-purple-600">
+                        <span id="game-avatar">🐰</span> <span id="game-team-name">BNS 1</span>
+                    </div>
+                    <div class="bg-white/90 border-4 border-orange-300 rounded-full px-4 py-1 md:py-2 shadow-md flex items-center gap-2 text-lg md:text-2xl font-bold text-orange-600">
+                        ⏱️ <span id="game-timer">00:00</span>
+                    </div>
+                </div>
+                <div class="flex justify-between w-full">
+                    <div class="bg-white/90 border-4 border-white rounded-full px-4 py-1 md:py-2 shadow-md text-lg md:text-2xl font-bold text-sky-600">
+                        ข้อที่: <span id="text-progress">1/10</span>
+                    </div>
+                    <div class="bg-white/90 border-4 border-white rounded-full px-4 py-1 md:py-2 shadow-md text-lg md:text-2xl font-bold text-pink-600">
+                        คะแนน: <span id="text-score">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="fruit-target" class="absolute top-[18%] md:top-[22%] left-1/2 anim-fruit z-10 pointer-events-none drop-shadow-[0_15px_15px_rgba(0,0,0,0.4)] flex justify-center items-center bg-white/70 rounded-[40px] border-4 border-white backdrop-blur-sm p-2 md:p-4 w-[160px] h-[160px] md:w-[280px] md:h-[280px]"></div>
+
+            <button id="btn-opt-left" class="hand-interact absolute left-2 md:left-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-pink-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg">Option 1</button>
+            <button id="btn-opt-right" class="hand-interact absolute right-2 md:right-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-sky-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg">Option 2</button>
+        </div>
+
+        <div id="screen-result" class="hidden flex-col items-center pointer-events-auto bg-white/95 p-6 md:p-8 rounded-[40px] border-4 border-white shadow-xl max-w-[95%] w-full md:w-3/4 max-h-[95vh] overflow-y-auto no-scrollbar">
+            <h2 class="text-4xl md:text-6xl font-bold text-purple-500 mb-2 md:mb-6 text-center drop-shadow-sm">สรุปผลการแข่งขัน 🏆</h2>
+            <div id="podium-container" class="flex items-end justify-center gap-2 md:gap-6 w-full h-40 md:h-64 mb-6">
+                <div class="flex flex-col items-center justify-end w-1/3 h-[70%]">
+                    <div id="podium-2-avatar" class="text-4xl md:text-5xl anim-bounce">🐯</div>
+                    <div id="podium-2-name" class="font-bold text-sm md:text-xl text-gray-700 truncate w-full text-center">BNS 2</div>
+                    <div class="w-full bg-sky-400 h-full rounded-t-xl border-t-4 border-white flex justify-center pt-2 shadow-inner"><span class="text-3xl text-white font-bold">2</span></div>
+                </div>
+                <div class="flex flex-col items-center justify-end w-1/3 h-full">
+                    <div class="text-xl md:text-2xl anim-bounce mb-1">👑</div>
+                    <div id="podium-1-avatar" class="text-5xl md:text-6xl anim-bounce">🦁</div>
+                    <div id="podium-1-name" class="font-bold text-sm md:text-xl text-gray-700 truncate w-full text-center">BNS 1</div>
+                    <div class="w-full bg-yellow-400 h-full rounded-t-xl border-t-4 border-white flex justify-center pt-2 shadow-inner"><span class="text-4xl text-white font-bold drop-shadow-md">1</span></div>
+                </div>
+                <div class="flex flex-col items-center justify-end w-1/3 h-[50%]">
+                    <div id="podium-3-avatar" class="text-3xl md:text-4xl anim-bounce">🐻</div>
+                    <div id="podium-3-name" class="font-bold text-sm md:text-xl text-gray-700 truncate w-full text-center">BNS 3</div>
+                    <div class="w-full bg-pink-400 h-full rounded-t-xl border-t-4 border-white flex justify-center pt-2 shadow-inner"><span class="text-3xl text-white font-bold">3</span></div>
+                </div>
+            </div>
+            <div class="w-full bg-gray-100 rounded-2xl p-4 border-2 border-gray-200 mb-6 max-h-[30vh] overflow-y-auto">
+                <table class="w-full text-left text-sm md:text-xl">
+                    <thead><tr class="text-gray-500 border-b-2 border-gray-300"><th class="pb-2">อันดับ</th><th class="pb-2">ทีม</th><th class="pb-2 text-right">คะแนน</th><th class="pb-2 text-right">เวลา</th></tr></thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+            </div>
+            <button id="btn-restart" class="hand-interact jelly-btn bg-green-400 text-white font-bold text-2xl md:text-3xl px-10 py-4">เล่นใหม่อีกครั้ง 🔄</button>
+        </div>
+
+    </div>
+
+    <script>
+        const fruitPool = [
+            { name: 'Apple', imageUrl: './a.png' }, { name: 'Banana', imageUrl: './b.png' },
+            { name: 'Grape', imageUrl: './c.png' }, { name: 'Strawberry', imageUrl: './d.png' },
+            { name: 'Watermelon', imageUrl: './e.png' }, { name: 'Pineapple', imageUrl: './f.png' },
+            { name: 'Cherry', imageUrl: './g.png' }, { name: 'Mango', imageUrl: './h.png' },
+            { name: 'Durian', imageUrl: './j.png' }, { name: 'Mangosteen', imageUrl: './k.png' },
+            { name: 'Papaya', imageUrl: './l.png' }, { name: 'Rambutan', imageUrl: './m.png' },
+            { name: 'Pomelo', imageUrl: './n.png' }, { name: 'Longan', imageUrl: './o.png' },
+            { name: 'Orange', imageUrl: './p.png' }, { name: 'Longkong', imageUrl: './q.png' }
+        ];
+        
+        const AVATARS = ['🦁','🐯','🐻','🐸','🐼','🐰','🦊','🐶','🐱','🐙','🦄','🦖'];
+        const TOTAL_QUESTIONS = 10;
+        let gameMode = 1; let teams = []; let currentTeamIndex = 0;
+        let currentRoundQuestions = []; let currentQuestionIndex = 0; let isProcessingAnswer = false;
+        let startTime = 0; let timerInterval = null;
+
+        // Tone.js Audio Engine พร้อมเสียงดนตรี BGM สไตล์สนุกๆ
+        let isAudioInit = false; const synths = {};
+        function initAudio() {
+            if (isAudioInit) return;
+            try {
+                synths.poly = new Tone.PolySynth(Tone.Synth).toDestination();
+                synths.mem = new Tone.MembraneSynth().toDestination();
+                synths.simple = new Tone.Synth().toDestination();
+                synths.bgm = new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.4, release: 0.4 } }).toDestination();
+                synths.bgm.volume.value = -22;
+
+                const bgmMelody = ["C4", "E4", "G4", "E4", "G3", "B3", "D4", "B3", "A3", "C4", "E4", "C4", "F3", "A3", "C4", "A3"];
+                let noteIndex = 0;
+                Tone.Transport.scheduleRepeat((time) => {
+                    synths.bgm.triggerAttackRelease(bgmMelody[noteIndex % bgmMelody.length], "8n", time);
+                    noteIndex++;
+                }, "8n");
+                Tone.Transport.bpm.value = 135;
+                Tone.context.resume(); Tone.Transport.start(); isAudioInit = true;
+            } catch (e) { console.error("Audio Init Error", e); }
+        }
+
+        function safePlay(playFn) {
+            try { if (isAudioInit && Tone.context.state === 'running') playFn(); } catch (e) { }
+        }
+
+        const SoundManager = {
+            hover: () => safePlay(() => synths.simple.triggerAttackRelease("C6", "32n", undefined, 0.05)),
+            click: () => safePlay(() => synths.mem.triggerAttackRelease("C4", "16n")),
+            correct: () => safePlay(() => synths.poly.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n")),
+            wrong: () => safePlay(() => { synths.simple.triggerAttackRelease("C3", "8n"); setTimeout(() => safePlay(() => synths.simple.triggerAttackRelease("G2", "4n")), 150); }),
+            win: () => safePlay(() => { const now = Tone.now(); synths.poly.triggerAttackRelease(["C5", "E5", "G5"], "8n", now); synths.poly.triggerAttackRelease(["D5", "F5", "A5"], "8n", now + 0.2); synths.poly.triggerAttackRelease(["E5", "G5", "B5"], "8n", now + 0.4); synths.poly.triggerAttackRelease(["C5", "E5", "G5", "C6"], "2n", now + 0.6); })
+        };
+
+        const screens = {
+            loading: document.getElementById('screen-loading'), start: document.getElementById('screen-start'),
+            mode: document.getElementById('screen-mode'), setup: document.getElementById('screen-setup'),
+            intermission: document.getElementById('screen-intermission'), game: document.getElementById('screen-game'),
+            result: document.getElementById('screen-result')
+        };
+
+        function switchScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            Object.values(screens).forEach(s => s.classList.remove('flex'));
+            screens[screenName].classList.remove('hidden'); screens[screenName].classList.add('flex');
+        }
+
+        function formatTime(seconds) { return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
+        function startTimer() { startTime = Date.now(); document.getElementById('game-timer').innerText = "00:00"; timerInterval = setInterval(() => { document.getElementById('game-timer').innerText = formatTime(Math.floor((Date.now() - startTime) / 1000)); }, 1000); }
+        function stopTimer() { clearInterval(timerInterval); teams[currentTeamIndex].time = Math.floor((Date.now() - startTime) / 1000); }
+
+        document.querySelectorAll('.btn-mode').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                SoundManager.click(); gameMode = parseInt(e.target.dataset.mode);
+                renderSetupScreen(); switchScreen('setup');
+            });
+        });
+
+        function renderSetupScreen() {
+            const container = document.getElementById('setup-container'); container.innerHTML = '';
+            for(let i=0; i<gameMode; i++) {
+                const defaultAvatar = AVATARS[i % AVATARS.length];
+                const row = document.createElement('div'); row.className = "flex items-center gap-2 md:gap-4 bg-sky-50 p-2 md:p-3 rounded-2xl border-2 border-sky-200";
+                row.innerHTML = `<button class="avatar-btn jelly-btn bg-white text-3xl md:text-4xl p-2 md:p-3 aspect-square" data-index="${i}" data-avatar="${defaultAvatar}">${defaultAvatar}</button><div class="flex-1"><label class="block text-sm text-gray-500 font-bold mb-1">ชื่อทีมที่ ${i+1}</label><input type="text" id="team-name-${i}" placeholder="BNS ${i+1}" class="w-full text-xl md:text-2xl p-2 rounded-xl border-2 border-gray-300 focus:outline-none focus:border-sky-400 font-bold text-gray-700"></div>`;
+                container.appendChild(row);
+            }
+            document.querySelectorAll('.avatar-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    SoundManager.hover(); let nextAvatar = AVATARS[(AVATARS.indexOf(e.target.dataset.avatar) + 1) % AVATARS.length];
+                    e.target.dataset.avatar = nextAvatar; e.target.innerText = nextAvatar;
+                });
+            });
+        }
+
+        document.getElementById('btn-setup-ready').addEventListener('click', () => {
+            SoundManager.click(); teams = [];
+            for(let i=0; i<gameMode; i++) {
+                teams.push({ id: i, name: document.getElementById(`team-name-${i}`).value.trim() || `BNS ${i+1}`, avatar: document.querySelector(`.avatar-btn[data-index="${i}"]`).dataset.avatar, score: 0, time: 0 });
+            }
+            currentTeamIndex = 0; prepareIntermission();
+        });
+
+        function prepareIntermission() {
+            const team = teams[currentTeamIndex];
+            document.getElementById('intermission-avatar').innerText = team.avatar; document.getElementById('intermission-name').innerText = team.name;
+            const shuffled = [...fruitPool].sort(() => 0.5 - Math.random());
+            currentRoundQuestions = shuffled.slice(0, TOTAL_QUESTIONS).map(fruit => {
+                let wrongOpts = fruitPool.filter(f => f.name !== fruit.name);
+                let options = [fruit, wrongOpts[Math.floor(Math.random() * wrongOpts.length)]].sort(() => 0.5 - Math.random());
+                return { answer: fruit, options: options, correctIndex: options.indexOf(fruit) };
+            });
+            currentQuestionIndex = 0; switchScreen('intermission');
+        }
+
+        document.getElementById('btn-start-round').addEventListener('click', () => {
+            SoundManager.click();
+            document.getElementById('game-avatar').innerText = teams[currentTeamIndex].avatar; document.getElementById('game-team-name').innerText = teams[currentTeamIndex].name;
+            startTimer(); renderQuestion(); switchScreen('game');
+        });
+
+        function renderQuestion() {
+            isProcessingAnswer = false;
+            document.getElementById('text-progress').innerText = `${currentQuestionIndex + 1}/${TOTAL_QUESTIONS}`;
+            document.getElementById('text-score').innerText = teams[currentTeamIndex].score;
+            const q = currentRoundQuestions[currentQuestionIndex];
+            const btnLeft = document.getElementById('btn-opt-left'); const btnRight = document.getElementById('btn-opt-right');
+            
+            document.getElementById('fruit-target').innerHTML = `<img src="${q.answer.imageUrl}" alt="${q.answer.name}" class="w-full h-full object-contain rounded-[25px] pointer-events-none" onerror="this.src='https://placehold.co/400x400/ffcccc/dc2626?text=Image+Missing'"/>`;
+            
+            btnLeft.className = 'hand-interact absolute left-2 md:left-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-pink-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg';
+            btnRight.className = 'hand-interact absolute right-2 md:right-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-sky-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg';
+            
+            btnLeft.innerText = q.options[0].name; btnRight.innerText = q.options[1].name;
+            btnLeft.dataset.isCorrect = (q.correctIndex === 0).toString(); btnRight.dataset.isCorrect = (q.correctIndex === 1).toString();
+        }
+
+        function spawnStars(x, y) {
+            for(let i=0; i<8; i++) {
+                let star = document.createElement('div'); star.innerText = '✨';
+                star.style.position = 'absolute'; star.style.left = x + 'px'; star.style.top = y + 'px'; star.style.fontSize = '30px'; star.style.pointerEvents = 'none'; star.style.transition = 'all 0.5s cubic-bezier(0.25, 1, 0.5, 1)'; star.style.zIndex = '100';
+                document.body.appendChild(star);
+                setTimeout(() => { star.style.transform = `translate(${Math.cos((Math.PI * 2 / 8) * i)*120}px, ${Math.sin((Math.PI * 2 / 8) * i)*120}px) scale(0)`; star.style.opacity = '0'; }, 10);
+                setTimeout(() => star.remove(), 510);
+            }
+        }
+
+        function createConfetti() {
+            const emojis = ['⭐', '🎉', '🎈', '🍬', '✨', '🍎', '🍌'];
+            for(let i=0; i<60; i++) {
+                let div = document.createElement('div'); div.className = 'confetti'; div.innerText = emojis[Math.floor(Math.random()*emojis.length)];
+                div.style.left = Math.random() * 100 + 'vw'; div.style.top = -10 + 'vh'; div.style.fontSize = (Math.random() * 20 + 20) + 'px'; document.body.appendChild(div);
+                setTimeout(() => { div.style.top = '110vh'; div.style.transform = `rotate(${Math.random()*720 - 360}deg)`; }, 50); setTimeout(() => div.remove(), 3050);
+            }
+        }
+
+        ['btn-opt-left', 'btn-opt-right'].forEach(id => {
+            document.getElementById(id).addEventListener('click', function() {
+                if (isProcessingAnswer) return; isProcessingAnswer = true; SoundManager.click();
+                const isCorrect = this.dataset.isCorrect === 'true'; const rect = this.getBoundingClientRect();
+                if (isCorrect) {
+                    this.classList.add('anim-pop'); this.classList.replace('bg-pink-400', 'bg-green-400'); this.classList.replace('bg-sky-400', 'bg-green-400'); SoundManager.correct();
+                    spawnStars(rect.left + rect.width/2, rect.top + rect.height/2); teams[currentTeamIndex].score += 10;
+                } else {
+                    this.classList.add('anim-shake'); this.classList.replace('bg-pink-400', 'bg-red-500'); this.classList.replace('bg-sky-400', 'bg-red-500'); SoundManager.wrong();
+                }
+                document.getElementById('text-score').innerText = teams[currentTeamIndex].score;
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    if (currentQuestionIndex < TOTAL_QUESTIONS) renderQuestion();
+                    else {
+                        stopTimer(); currentTeamIndex++;
+                        if(currentTeamIndex < teams.length) prepareIntermission();
+                        else {
+                            SoundManager.win(); createConfetti();
+                            teams.sort((a, b) => { if (b.score !== a.score) return b.score - a.score; return a.time - b.time; });
+                            ['podium-1', 'podium-2', 'podium-3'].forEach((id, i) => {
+                                const t = teams[i]; const el = document.getElementById(`${id}-avatar`);
+                                if(t) { el.innerText = t.avatar; document.getElementById(`${id}-name`).innerText = t.name; el.parentElement.classList.remove('invisible'); }
+                                else el.parentElement.classList.add('invisible');
+                            });
+                            const tbody = document.getElementById('leaderboard-body'); tbody.innerHTML = '';
+                            teams.forEach((t, i) => { tbody.innerHTML += `<tr class="border-b border-gray-200"><td class="py-2 font-bold">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1+'.'}</td><td class="py-2 flex items-center gap-2"><span class="text-xl">${t.avatar}</span> <span class="font-bold text-gray-700">${t.name}</span></td><td class="py-2 text-right font-bold text-pink-500">${t.score}</td><td class="py-2 text-right font-bold text-orange-500">${formatTime(t.time)}</td></tr>`; });
+                            switchScreen('result');
+                        }
+                    }
+                }, 1200);
+            });
+        });
+
+        // เปิดเพลงตอนกดเริ่ม
+        document.getElementById('btn-goto-mode').addEventListener('click', () => { initAudio(); SoundManager.click(); switchScreen('mode'); });
+        document.getElementById('btn-restart').addEventListener('click', () => { SoundManager.click(); switchScreen('mode'); });
+
+        let hoverTarget = null; let hoverStartTime = 0; const HOVER_DURATION = 1200; const hoverRing = document.getElementById('hover-ring'); const RING_MAX_DASH = 226;
+        function processHoverLogic(cursorX, cursorY) {
+            const activeScreen = Array.from(document.querySelectorAll('div[id^="screen-"]')).find(el => !el.classList.contains('hidden'));
+            let foundTarget = null;
+            if (activeScreen) {
+                const activeButtons = activeScreen.querySelectorAll('.hand-interact');
+                for (let btn of activeButtons) {
+                    const rect = btn.getBoundingClientRect();
+                    if (cursorX >= rect.left - 20 && cursorX <= rect.right + 20 && cursorY >= rect.top - 20 && cursorY <= rect.bottom + 20) { foundTarget = btn; break; }
+                }
+            }
+            if (foundTarget && !isProcessingAnswer) {
+                if (hoverTarget !== foundTarget) { hoverTarget = foundTarget; hoverStartTime = Date.now(); foundTarget.classList.add('simulated-active'); SoundManager.hover(); }
+                else {
+                    const progress = Math.min((Date.now() - hoverStartTime) / HOVER_DURATION, 1);
+                    hoverRing.style.strokeDashoffset = RING_MAX_DASH - (progress * RING_MAX_DASH);
+                    if (progress >= 1) { foundTarget.click(); foundTarget.classList.remove('simulated-active'); hoverTarget = null; hoverRing.style.strokeDashoffset = RING_MAX_DASH; }
+                }
+            } else { if (hoverTarget) hoverTarget.classList.remove('simulated-active'); hoverTarget = null; hoverRing.style.strokeDashoffset = RING_MAX_DASH; }
+        }
+
+        // ==========================================
+        // MediaPipe Camera Engine (ใช้แบบดั้งเดิม 100%)
+        // ==========================================
+        const videoElement = document.getElementById('video-input');
+        const canvasElement = document.getElementById('bg-canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const arCursor = document.getElementById('ar-cursor');
+
+        function resizeCanvas() { canvasElement.width = window.innerWidth; canvasElement.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+
+        hands.onResults((results) => {
+            canvasCtx.save(); canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.scale(-1, 1); canvasCtx.translate(-canvasElement.width, 0);
+            if (results.image) canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#ffffff', lineWidth: 4});
+                drawLandmarks(canvasCtx, landmarks, {color: '#ec4899', lineWidth: 2, radius: 4});
+                canvasCtx.restore();
+                const cursorX = (1 - landmarks[8].x) * window.innerWidth; const cursorY = landmarks[8].y * window.innerHeight;
+                arCursor.style.left = `${cursorX}px`; arCursor.style.top = `${cursorY}px`; arCursor.style.opacity = '1';
+                processHoverLogic(cursorX, cursorY);
+            } else {
+                canvasCtx.restore(); arCursor.style.opacity = '0'; processHoverLogic(-1000, -1000);
+            }
+
+            if (screens.loading.classList.contains('flex') && results.image) {
+                switchScreen('start');
+            }
+        });
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => { await hands.send({image: videoElement}); },
+            width: 1280, height: 720
+        });
+        
+        camera.start().catch(err => {
+            document.querySelector('#screen-loading p').innerText = "เกิดข้อผิดพลาด: ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตใช้งาน (Permissions)";
+            console.error("Camera Error:", err);
+        });
+
+    </script>
+</body>
+</html>
