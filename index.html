@@ -17,7 +17,6 @@
             background-color: #bae6fd;
         }
 
-        /* สไตล์เยลลี่ 3D และ Animation */
         .jelly-btn {
             border-radius: 30px;
             border: 4px solid white;
@@ -69,7 +68,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 </head>
 <body class="w-screen h-screen relative select-none">
@@ -80,17 +78,21 @@
     <div id="ar-cursor" class="fixed w-20 h-20 pointer-events-none z-[100] transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 transition-opacity duration-300">
         <span class="text-5xl drop-shadow-lg">✨</span>
         <svg class="absolute inset-0 w-full h-full" style="transform: rotate(-90deg);">
-            <circle cx="40" cy="40" r="36" stroke="#ec4899" stroke-width="6" fill="none" stroke-linecap="round"
-                    stroke-dasharray="226" stroke-dashoffset="226" id="hover-ring" />
+            <circle cx="40" cy="40" r="36" stroke="#ec4899" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226" id="hover-ring" />
         </svg>
     </div>
 
     <div class="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
         
-        <div id="screen-loading" class="flex flex-col items-center pointer-events-auto bg-white/90 p-8 rounded-[30px] border-4 border-white shadow-xl max-w-[90%]">
+        <div id="screen-loading" class="flex flex-col items-center pointer-events-auto bg-white/90 p-8 rounded-[30px] border-4 border-white shadow-xl max-w-[90%] z-50">
             <div class="text-6xl mb-4 anim-bounce">🤖</div>
-            <h1 class="text-3xl md:text-4xl font-bold text-sky-600 text-center mb-2">กำลังเตรียมระบบ AI...</h1>
-            <p class="text-xl text-gray-600 text-center">กรุณากดยอมรับการใช้กล้อง (Allow Camera) เพื่อเริ่มเล่น</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-sky-600 text-center mb-4">ระบบพร้อมแล้ว!</h1>
+            <p class="text-lg text-gray-600 text-center mb-6">กรุณากดปุ่มด้านล่างเพื่อเปิดกล้อง</p>
+            
+            <button id="btn-request-camera" class="jelly-btn bg-green-500 text-white font-bold text-2xl md:text-3xl px-8 py-4 mb-2">
+                📸 อนุญาตใช้กล้อง
+            </button>
+            <p id="camera-error-msg" class="text-red-500 text-center mt-2 hidden text-sm font-bold"></p>
         </div>
 
         <div id="screen-start" class="hidden flex-col items-center pointer-events-auto max-w-[90%]">
@@ -102,257 +104,4 @@
             </button>
         </div>
 
-        <div id="screen-mode" class="hidden flex-col items-center pointer-events-auto bg-white/90 p-6 md:p-10 rounded-[40px] border-4 border-white shadow-xl max-w-[95%]">
-            <h2 class="text-4xl md:text-5xl font-bold text-purple-500 mb-6 text-center">เลือกจำนวนผู้เล่น/ทีม 🏆</h2>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <button class="btn-mode jelly-btn bg-pink-400 text-white font-bold text-3xl py-4 px-6" data-mode="1">1 ทีม</button>
-                <button class="btn-mode jelly-btn bg-sky-400 text-white font-bold text-3xl py-4 px-6" data-mode="2">2 ทีม</button>
-                <button class="btn-mode jelly-btn bg-green-400 text-white font-bold text-3xl py-4 px-6" data-mode="3">3 ทีม</button>
-                <button class="btn-mode jelly-btn bg-purple-400 text-white font-bold text-3xl py-4 px-6" data-mode="4">4 ทีม</button>
-                <button class="btn-mode jelly-btn bg-orange-400 text-white font-bold text-3xl py-4 px-6" data-mode="5">5 ทีม</button>
-                <button class="btn-mode jelly-btn bg-red-400 text-white font-bold text-3xl py-4 px-6" data-mode="6">6 ทีม</button>
-            </div>
-        </div>
-
-        <div id="screen-setup" class="hidden flex-col items-center pointer-events-auto bg-white/95 p-6 md:p-8 rounded-[40px] border-4 border-white shadow-xl max-w-[95%] w-full md:w-2/3 max-h-[90vh] overflow-y-auto no-scrollbar">
-            <h2 class="text-3xl md:text-4xl font-bold text-sky-500 mb-4 text-center">ตั้งชื่อและเลือกตัวละคร ✨</h2>
-            <div id="setup-container" class="w-full flex flex-col gap-3 mb-6">
-                </div>
-            <button id="btn-setup-ready" class="jelly-btn bg-green-400 text-white font-bold text-3xl px-12 py-4">
-                พร้อมลุย! 🚀
-            </button>
-        </div>
-
-        <div id="screen-intermission" class="hidden flex-col items-center justify-center pointer-events-auto w-full h-full bg-black/40 backdrop-blur-sm z-40">
-            <div class="flex flex-col items-center bg-white/95 p-8 rounded-[40px] border-4 border-white shadow-2xl anim-pop">
-                <div id="intermission-avatar" class="text-7xl mb-4">🐰</div>
-                <h2 class="text-4xl md:text-5xl font-bold text-purple-600 mb-2">ตาของทีม: <span id="intermission-name">BNS 1</span></h2>
-                <p class="text-2xl text-gray-600 mb-8">เตรียมตัวให้พร้อม!</p>
-                <button id="btn-start-round" class="hand-interact jelly-btn bg-yellow-400 text-white font-bold text-4xl px-12 py-5">
-                    START! 🏁
-                </button>
-            </div>
-        </div>
-
-        <div id="screen-game" class="hidden w-full h-full relative">
-            
-            <div class="absolute top-0 w-full p-2 md:p-4 flex flex-col gap-2 z-30 pointer-events-none">
-                <div class="flex justify-between w-full">
-                    <div class="bg-white/90 border-4 border-purple-300 rounded-full px-4 py-1 md:py-2 shadow-md flex items-center gap-2 text-lg md:text-2xl font-bold text-purple-600">
-                        <span id="game-avatar">🐰</span> <span id="game-team-name">BNS 1</span>
-                    </div>
-                    <div class="bg-white/90 border-4 border-orange-300 rounded-full px-4 py-1 md:py-2 shadow-md flex items-center gap-2 text-lg md:text-2xl font-bold text-orange-600">
-                        ⏱️ <span id="game-timer">00:00</span>
-                    </div>
-                </div>
-                <div class="flex justify-between w-full">
-                    <div class="bg-white/90 border-4 border-white rounded-full px-4 py-1 md:py-2 shadow-md text-lg md:text-2xl font-bold text-sky-600">
-                        ข้อที่: <span id="text-progress">1/10</span>
-                    </div>
-                    <div class="bg-white/90 border-4 border-white rounded-full px-4 py-1 md:py-2 shadow-md text-lg md:text-2xl font-bold text-pink-600">
-                        คะแนน: <span id="text-score">0</span>
-                    </div>
-                </div>
-            </div>
-
-            <div id="fruit-target" class="absolute top-[18%] md:top-[22%] left-1/2 anim-fruit z-10 pointer-events-none drop-shadow-[0_15px_15px_rgba(0,0,0,0.4)] flex justify-center items-center bg-white/70 rounded-[40px] border-4 border-white backdrop-blur-sm p-2 md:p-4 w-[160px] h-[160px] md:w-[280px] md:h-[280px]">
-                </div>
-
-            <button id="btn-opt-left" class="hand-interact absolute left-2 md:left-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-pink-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg">
-                Option 1
-            </button>
-            <button id="btn-opt-right" class="hand-interact absolute right-2 md:right-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-sky-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg">
-                Option 2
-            </button>
-
-        </div>
-
-        <div id="screen-result" class="hidden flex-col items-center pointer-events-auto bg-white/95 p-6 md:p-8 rounded-[40px] border-4 border-white shadow-xl max-w-[95%] w-full md:w-3/4 max-h-[95vh] overflow-y-auto no-scrollbar">
-            <h2 class="text-4xl md:text-6xl font-bold text-purple-500 mb-2 md:mb-6 text-center drop-shadow-sm">สรุปผลการแข่งขัน 🏆</h2>
-            
-            <div id="podium-container" class="flex items-end justify-center gap-2 md:gap-6 w-full h-40 md:h-64 mb-6">
-                <div class="flex flex-col items-center justify-end w-1/3 h-[70%]">
-                    <div id="podium-2-avatar" class="text-4xl md:text-5xl anim-bounce">🐯</div>
-                    <div id="podium-2-name" class="font-bold text-sm md:text-xl text-gray-700 truncate w-full text-center">BNS 2</div>
-                    <div class="w-full bg-sky-400 h-full rounded-t-xl border-t-4 border-white flex justify-center pt-2 shadow-inner">
-                        <span class="text-3xl text-white font-bold">2</span>
-                    </div>
-                </div>
-                <div class="flex flex-col items-center justify-end w-1/3 h-full">
-                    <div class="text-xl md:text-2xl anim-bounce mb-1">👑</div>
-                    <div id="podium-1-avatar" class="text-5xl md:text-6xl anim-bounce">🦁</div>
-                    <div id="podium-1-name" class="font-bold text-sm md:text-xl text-gray-700 truncate w-full text-center">BNS 1</div>
-                    <div class="w-full bg-yellow-400 h-full rounded-t-xl border-t-4 border-white flex justify-center pt-2 shadow-inner">
-                        <span class="text-4xl text-white font-bold drop-shadow-md">1</span>
-                    </div>
-                </div>
-                <div class="flex flex-col items-center justify-end w-1/3 h-[50%]">
-                    <div id="podium-3-avatar" class="text-3xl md:text-4xl anim-bounce">🐻</div>
-                    <div id="podium-3-name" class="font-bold text-sm md:text-xl text-gray-700 truncate w-full text-center">BNS 3</div>
-                    <div class="w-full bg-pink-400 h-full rounded-t-xl border-t-4 border-white flex justify-center pt-2 shadow-inner">
-                        <span class="text-3xl text-white font-bold">3</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="w-full bg-gray-100 rounded-2xl p-4 border-2 border-gray-200 mb-6 max-h-[30vh] overflow-y-auto">
-                <table class="w-full text-left text-sm md:text-xl">
-                    <thead>
-                        <tr class="text-gray-500 border-b-2 border-gray-300">
-                            <th class="pb-2">อันดับ</th>
-                            <th class="pb-2">ทีม</th>
-                            <th class="pb-2 text-right">คะแนน</th>
-                            <th class="pb-2 text-right">เวลา</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-body">
-                        </tbody>
-                </table>
-            </div>
-
-            <button id="btn-restart" class="hand-interact jelly-btn bg-green-400 text-white font-bold text-2xl md:text-3xl px-10 py-4">
-                เล่นใหม่อีกครั้ง 🔄
-            </button>
-        </div>
-
-    </div>
-
-    <script>
-        // ==========================================
-        // 1. Data Source
-        // ==========================================
-        const fruitPool = [
-            { name: 'Apple', imageUrl: './a.png' }, { name: 'Banana', imageUrl: './b.png' },
-            { name: 'Grape', imageUrl: './c.png' }, { name: 'Strawberry', imageUrl: './d.png' },
-            { name: 'Watermelon', imageUrl: './e.png' }, { name: 'Pineapple', imageUrl: './f.png' },
-            { name: 'Cherry', imageUrl: './g.png' }, { name: 'Mango', imageUrl: './h.png' },
-            { name: 'Durian', imageUrl: './j.png' }, { name: 'Mangosteen', imageUrl: './k.png' },
-            { name: 'Papaya', imageUrl: './l.png' }, { name: 'Rambutan', imageUrl: './m.png' },
-            { name: 'Pomelo', imageUrl: './n.png' }, { name: 'Longan', imageUrl: './o.png' },
-            { name: 'Orange', imageUrl: './p.png' }, { name: 'Longkong', imageUrl: './q.png' }
-        ];
-        
-        const AVATARS = ['🦁','🐯','🐻','🐸','🐼','🐰','🦊','🐶','🐱','🐙','🦄','🦖'];
-        const TOTAL_QUESTIONS = 10;
-
-        // Multiplayer State
-        let gameMode = 1;
-        let teams = [];
-        let currentTeamIndex = 0;
-        
-        // Round State
-        let currentRoundQuestions = [];
-        let currentQuestionIndex = 0;
-        let isProcessingAnswer = false;
-        
-        // Timer State
-        let startTime = 0;
-        let timerInterval = null;
-
-        // ==========================================
-        // 2. Audio Engine (Tone.js) กับเพลงประกอบสนุกๆ วนลูป
-        // ==========================================
-        let isAudioInit = false;
-        const synths = {};
-
-        function initAudio() {
-            if (isAudioInit) return;
-            try {
-                // คีย์และเสียงเอฟเฟกต์
-                synths.poly = new Tone.PolySynth(Tone.Synth).toDestination();
-                synths.mem = new Tone.MembraneSynth().toDestination();
-                synths.simple = new Tone.Synth().toDestination();
-
-                // สร้าง Synth ตัวพิเศษสลับเล่นดนตรีประกอบ (BGM) สไตล์ Retro
-                synths.bgm = new Tone.Synth({
-                    oscillator: { type: "square" },
-                    envelope: { attack: 0.02, decay: 0.1, sustain: 0.4, release: 0.4 }
-                }).toDestination();
-                synths.bgm.volume.value = -22; // หรี่เสียงดนตรีลงเพื่อให้เสียงเอฟเฟกต์ชัดเจน
-
-                // โน้ตทำนองดนตรีสนุกตื่นเต้นสไตล์ Retro ป๊อป (C -> G -> Am -> F ลูป)
-                const bgmMelody = [
-                    "C4", "E4", "G4", "E4", "G3", "B3", "D4", "B3",
-                    "A3", "C4", "E4", "C4", "F3", "A3", "C4", "A3"
-                ];
-                let noteIndex = 0;
-
-                // สั่งให้ตัวจับเวลาวนลูปของ Tone.js ทำงานอัตโนมัติ
-                Tone.Transport.scheduleRepeat((time) => {
-                    let currentNote = bgmMelody[noteIndex % bgmMelody.length];
-                    synths.bgm.triggerAttackRelease(currentNote, "8n", time);
-                    noteIndex++;
-                }, "8n");
-
-                Tone.Transport.bpm.value = 135; // ความเร็วของเพลงดนตรีที่สนุกและกระฉับกระเฉง
-
-                Tone.context.resume();
-                Tone.Transport.start(); // เริ่มเปิดดนตรี
-                isAudioInit = true;
-            } catch (e) { console.error("Audio Init Error", e); }
-        }
-
-        function safePlay(playFn) {
-            try {
-                if (isAudioInit && Tone.context.state === 'running') playFn();
-            } catch (e) { console.warn("Sound blocked", e); }
-        }
-
-        const SoundManager = {
-            hover: () => safePlay(() => synths.simple.triggerAttackRelease("C6", "32n", undefined, 0.05)),
-            click: () => safePlay(() => synths.mem.triggerAttackRelease("C4", "16n")),
-            correct: () => safePlay(() => synths.poly.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n")),
-            wrong: () => safePlay(() => {
-                synths.simple.triggerAttackRelease("C3", "8n");
-                setTimeout(() => safePlay(() => synths.simple.triggerAttackRelease("G2", "4n")), 150);
-            }),
-            win: () => safePlay(() => {
-                const now = Tone.now();
-                synths.poly.triggerAttackRelease(["C5", "E5", "G5"], "8n", now);
-                synths.poly.triggerAttackRelease(["D5", "F5", "A5"], "8n", now + 0.2);
-                synths.poly.triggerAttackRelease(["E5", "G5", "B5"], "8n", now + 0.4);
-                synths.poly.triggerAttackRelease(["C5", "E5", "G5", "C6"], "2n", now + 0.6);
-            })
-        };
-
-        // ==========================================
-        // 3. UI Controllers
-        // ==========================================
-        const screens = {
-            loading: document.getElementById('screen-loading'),
-            start: document.getElementById('screen-start'),
-            mode: document.getElementById('screen-mode'),
-            setup: document.getElementById('screen-setup'),
-            intermission: document.getElementById('screen-intermission'),
-            game: document.getElementById('screen-game'),
-            result: document.getElementById('screen-result')
-        };
-
-        function switchScreen(screenName) {
-            Object.values(screens).forEach(s => s.classList.add('hidden'));
-            Object.values(screens).forEach(s => s.classList.remove('flex'));
-            screens[screenName].classList.remove('hidden');
-            screens[screenName].classList.add('flex');
-        }
-
-        // ==========================================
-        // 4. Timer Functions
-        // ==========================================
-        function formatTime(seconds) {
-            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-            const s = String(seconds % 60).padStart(2, '0');
-            return `${m}:${s}`;
-        }
-
-        function startTimer() {
-            startTime = Date.now();
-            document.getElementById('game-timer').innerText = "00:00";
-            timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                document.getElementById('game-timer').innerText = formatTime(elapsed);
-            }, 1000);
-        }
-
-        function stopTimer() {
-            clearInterval(timerInterval);
-            const elapsed = Math.floor((Date.now() - startTime)
+        <div id="screen-
