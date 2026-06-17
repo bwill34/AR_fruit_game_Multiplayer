@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Vocabulary AR Game - Multiplayer</title>
+    <title>Fruit Vocabulary AR Game - Multiplayer & BGM</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -62,7 +62,6 @@
             transition: top 3s linear, transform 3s linear;
         }
         
-        /* ซ่อน Scrollbar แต่ยังเลื่อนได้ */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -75,7 +74,7 @@
 </head>
 <body class="w-screen h-screen relative select-none">
 
-    <video id="video-input" class="hidden" autoplay playsinline></video>
+    <video id="video-input" class="absolute w-0 h-0 opacity-0 pointer-events-none" autoplay playsinline muted></video>
     <canvas id="bg-canvas" class="absolute top-0 left-0 w-full h-full z-0 object-cover"></canvas>
 
     <div id="ar-cursor" class="fixed w-20 h-20 pointer-events-none z-[100] transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 transition-opacity duration-300">
@@ -237,7 +236,7 @@
         const TOTAL_QUESTIONS = 10;
 
         // Multiplayer State
-        let gameMode = 1; // Number of teams
+        let gameMode = 1;
         let teams = [];
         let currentTeamIndex = 0;
         
@@ -251,7 +250,7 @@
         let timerInterval = null;
 
         // ==========================================
-        // 2. Audio Engine (Tone.js)
+        // 2. Audio Engine (Tone.js) กับเพลงประกอบสนุกๆ วนลูป
         // ==========================================
         let isAudioInit = false;
         const synths = {};
@@ -259,10 +258,36 @@
         function initAudio() {
             if (isAudioInit) return;
             try {
+                // คีย์และเสียงเอฟเฟกต์
                 synths.poly = new Tone.PolySynth(Tone.Synth).toDestination();
                 synths.mem = new Tone.MembraneSynth().toDestination();
                 synths.simple = new Tone.Synth().toDestination();
+
+                // สร้าง Synth ตัวพิเศษสลับเล่นดนตรีประกอบ (BGM) สไตล์ Retro
+                synths.bgm = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.02, decay: 0.1, sustain: 0.4, release: 0.4 }
+                }).toDestination();
+                synths.bgm.volume.value = -22; // หรี่เสียงดนตรีลงเพื่อให้เสียงเอฟเฟกต์ชัดเจน
+
+                // โน้ตทำนองดนตรีสนุกตื่นเต้นสไตล์ Retro ป๊อป (C -> G -> Am -> F ลูป)
+                const bgmMelody = [
+                    "C4", "E4", "G4", "E4", "G3", "B3", "D4", "B3",
+                    "A3", "C4", "E4", "C4", "F3", "A3", "C4", "A3"
+                ];
+                let noteIndex = 0;
+
+                // สั่งให้ตัวจับเวลาวนลูปของ Tone.js ทำงานอัตโนมัติ
+                Tone.Transport.scheduleRepeat((time) => {
+                    let currentNote = bgmMelody[noteIndex % bgmMelody.length];
+                    synths.bgm.triggerAttackRelease(currentNote, "8n", time);
+                    noteIndex++;
+                }, "8n");
+
+                Tone.Transport.bpm.value = 135; // ความเร็วของเพลงดนตรีที่สนุกและกระฉับกระเฉง
+
                 Tone.context.resume();
+                Tone.Transport.start(); // เริ่มเปิดดนตรี
                 isAudioInit = true;
             } catch (e) { console.error("Audio Init Error", e); }
         }
@@ -330,236 +355,4 @@
 
         function stopTimer() {
             clearInterval(timerInterval);
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            teams[currentTeamIndex].time = elapsed; // เก็บเวลาของทีม
-        }
-
-        // ==========================================
-        // 5. Game Logic
-        // ==========================================
-        
-        // เมื่อเลือกระบบผู้เล่น 1-6
-        document.querySelectorAll('.btn-mode').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                SoundManager.click();
-                gameMode = parseInt(e.target.dataset.mode);
-                renderSetupScreen();
-                switchScreen('setup');
-            });
-        });
-
-        // สร้าง Input ให้ตั้งชื่อและเลือกตัวละครตามจำนวนทีม
-        function renderSetupScreen() {
-            const container = document.getElementById('setup-container');
-            container.innerHTML = '';
-            for(let i=0; i<gameMode; i++) {
-                const defaultAvatar = AVATARS[i % AVATARS.length];
-                const row = document.createElement('div');
-                row.className = "flex items-center gap-2 md:gap-4 bg-sky-50 p-2 md:p-3 rounded-2xl border-2 border-sky-200";
-                row.innerHTML = `
-                    <button class="avatar-btn jelly-btn bg-white text-3xl md:text-4xl p-2 md:p-3 aspect-square" data-index="${i}" data-avatar="${defaultAvatar}">${defaultAvatar}</button>
-                    <div class="flex-1">
-                        <label class="block text-sm text-gray-500 font-bold mb-1">ชื่อทีมที่ ${i+1}</label>
-                        <input type="text" id="team-name-${i}" placeholder="BNS ${i+1}" class="w-full text-xl md:text-2xl p-2 rounded-xl border-2 border-gray-300 focus:outline-none focus:border-sky-400 font-bold text-gray-700">
-                    </div>
-                `;
-                container.appendChild(row);
-            }
-
-            // ระบบเปลี่ยนตัวละครเมื่อคลิก
-            document.querySelectorAll('.avatar-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    SoundManager.hover();
-                    let currentAvatar = e.target.dataset.avatar;
-                    let nextIdx = (AVATARS.indexOf(currentAvatar) + 1) % AVATARS.length;
-                    let nextAvatar = AVATARS[nextIdx];
-                    e.target.dataset.avatar = nextAvatar;
-                    e.target.innerText = nextAvatar;
-                });
-            });
-        }
-
-        // กดยืนยันจากหน้า Setup
-        document.getElementById('btn-setup-ready').addEventListener('click', () => {
-            SoundManager.click();
-            teams = [];
-            for(let i=0; i<gameMode; i++) {
-                let inputVal = document.getElementById(`team-name-${i}`).value.trim();
-                let avatarVal = document.querySelector(`.avatar-btn[data-index="${i}"]`).dataset.avatar;
-                teams.push({
-                    id: i,
-                    name: inputVal || `BNS ${i+1}`,
-                    avatar: avatarVal,
-                    score: 0,
-                    time: 0
-                });
-            }
-            currentTeamIndex = 0;
-            prepareIntermission();
-        });
-
-        // หน้าคั่นบอกว่าตาใครเล่น
-        function prepareIntermission() {
-            const team = teams[currentTeamIndex];
-            document.getElementById('intermission-avatar').innerText = team.avatar;
-            document.getElementById('intermission-name').innerText = team.name;
-            
-            // สุ่มข้อสอบใหม่ให้ทีมนี้
-            generateRound();
-            switchScreen('intermission');
-        }
-
-        function generateRound() {
-            const shuffled = [...fruitPool].sort(() => 0.5 - Math.random());
-            currentRoundQuestions = shuffled.slice(0, TOTAL_QUESTIONS).map(fruit => {
-                let wrongOpts = fruitPool.filter(f => f.name !== fruit.name);
-                let wrongChoice = wrongOpts[Math.floor(Math.random() * wrongOpts.length)];
-                let options = [fruit, wrongChoice].sort(() => 0.5 - Math.random());
-                return { answer: fruit, options: options, correctIndex: options.indexOf(fruit) };
-            });
-            currentQuestionIndex = 0;
-        }
-
-        // เริ่มจับเวลาและดึงข้อแรกลงจอ
-        document.getElementById('btn-start-round').addEventListener('click', () => {
-            SoundManager.click();
-            const team = teams[currentTeamIndex];
-            document.getElementById('game-avatar').innerText = team.avatar;
-            document.getElementById('game-team-name').innerText = team.name;
-            
-            startTimer();
-            renderQuestion();
-            switchScreen('game');
-        });
-
-        function renderQuestion() {
-            isProcessingAnswer = false;
-            document.getElementById('text-progress').innerText = `${currentQuestionIndex + 1}/${TOTAL_QUESTIONS}`;
-            document.getElementById('text-score').innerText = teams[currentTeamIndex].score;
-
-            const q = currentRoundQuestions[currentQuestionIndex];
-            const fruitEl = document.getElementById('fruit-target');
-            const btnLeft = document.getElementById('btn-opt-left');
-            const btnRight = document.getElementById('btn-opt-right');
-
-            // Reset Animation & Update Image
-            fruitEl.innerHTML = `<img src="${q.answer.imageUrl}" alt="${q.answer.name}" class="w-full h-full object-contain rounded-[25px] pointer-events-none" onerror="this.src='https://placehold.co/400x400/ffcccc/dc2626?text=Image+Missing'"/>`;
-            
-            // Update Options
-            btnLeft.className = 'hand-interact absolute left-2 md:left-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-pink-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg';
-            btnRight.className = 'hand-interact absolute right-2 md:right-8 bottom-[10%] md:bottom-[15%] pointer-events-auto jelly-btn bg-sky-400 text-white font-bold text-xl sm:text-2xl md:text-5xl py-4 px-2 w-[45%] md:w-[35%] z-20 leading-tight text-center shadow-lg';
-            
-            btnLeft.innerText = q.options[0].name;
-            btnRight.innerText = q.options[1].name;
-
-            btnLeft.dataset.isCorrect = (q.correctIndex === 0).toString();
-            btnRight.dataset.isCorrect = (q.correctIndex === 1).toString();
-        }
-
-        // เอฟเฟกต์
-        function spawnStars(x, y) {
-            for(let i=0; i<8; i++) {
-                let star = document.createElement('div');
-                star.innerText = '✨';
-                star.style.position = 'absolute'; star.style.left = x + 'px'; star.style.top = y + 'px';
-                star.style.fontSize = '30px'; star.style.pointerEvents = 'none';
-                star.style.transition = 'all 0.5s cubic-bezier(0.25, 1, 0.5, 1)'; star.style.zIndex = '100';
-                document.body.appendChild(star);
-                setTimeout(() => {
-                    const angle = (Math.PI * 2 / 8) * i; const dist = 120;
-                    star.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px) scale(0)`;
-                    star.style.opacity = '0';
-                }, 10);
-                setTimeout(() => star.remove(), 510);
-            }
-        }
-
-        function createConfetti() {
-            const emojis = ['⭐', '🎉', '🎈', '🍬', '✨', '🍎', '🍌'];
-            for(let i=0; i<60; i++) {
-                let div = document.createElement('div');
-                div.className = 'confetti'; div.innerText = emojis[Math.floor(Math.random()*emojis.length)];
-                div.style.left = Math.random() * 100 + 'vw'; div.style.top = -10 + 'vh';
-                div.style.fontSize = (Math.random() * 20 + 20) + 'px'; document.body.appendChild(div);
-                setTimeout(() => { div.style.top = '110vh'; div.style.transform = `rotate(${Math.random()*720 - 360}deg)`; }, 50);
-                setTimeout(() => div.remove(), 3050);
-            }
-        }
-
-        function handleAnswer(btn) {
-            if (isProcessingAnswer) return;
-            isProcessingAnswer = true;
-            SoundManager.click();
-
-            const isCorrect = btn.dataset.isCorrect === 'true';
-            const rect = btn.getBoundingClientRect();
-
-            if (isCorrect) {
-                btn.classList.add('anim-pop');
-                btn.classList.replace('bg-pink-400', 'bg-green-400');
-                btn.classList.replace('bg-sky-400', 'bg-green-400');
-                SoundManager.correct();
-                spawnStars(rect.left + rect.width/2, rect.top + rect.height/2);
-                teams[currentTeamIndex].score += 10;
-            } else {
-                btn.classList.add('anim-shake');
-                btn.classList.replace('bg-pink-400', 'bg-red-500');
-                btn.classList.replace('bg-sky-400', 'bg-red-500');
-                SoundManager.wrong();
-            }
-
-            document.getElementById('text-score').innerText = teams[currentTeamIndex].score;
-
-            setTimeout(() => {
-                currentQuestionIndex++;
-                if (currentQuestionIndex < TOTAL_QUESTIONS) {
-                    renderQuestion();
-                } else {
-                    // จบรอบของทีมนี้
-                    stopTimer();
-                    currentTeamIndex++;
-                    if(currentTeamIndex < teams.length) {
-                        prepareIntermission(); // ไปตาของทีมถัดไป
-                    } else {
-                        renderResultScreen(); // จบเกม โชว์จัดอันดับ
-                    }
-                }
-            }, 1200);
-        }
-
-        ['btn-opt-left', 'btn-opt-right'].forEach(id => {
-            document.getElementById(id).addEventListener('click', function() { handleAnswer(this); });
-        });
-
-        // ==========================================
-        // 6. Result & Leaderboard Rendering
-        // ==========================================
-        function renderResultScreen() {
-            SoundManager.win();
-            createConfetti();
-            
-            // เรียงลำดับ: คะแนนมาก่อน ถ้าเท่ากันเอาเวลาน้อยกว่า
-            teams.sort((a, b) => {
-                if (b.score !== a.score) return b.score - a.score;
-                return a.time - b.time;
-            });
-
-            // จัดแท่น Podium
-            const p1 = teams[0];
-            const p2 = teams[1] || null;
-            const p3 = teams[2] || null;
-
-            document.getElementById('podium-1-avatar').innerText = p1.avatar;
-            document.getElementById('podium-1-name').innerText = p1.name;
-
-            if(p2) {
-                document.getElementById('podium-2-avatar').innerText = p2.avatar;
-                document.getElementById('podium-2-name').innerText = p2.name;
-                document.getElementById('podium-2-avatar').parentElement.classList.remove('invisible');
-            } else {
-                document.getElementById('podium-2-avatar').parentElement.classList.add('invisible');
-            }
-
-            if(p3) {
-                document.getElementById('podium-3-avatar').innerText = p3.avatar;
-                document.getElementById('podium-3-name').innerText = p3.name;
+            const elapsed = Math.floor((Date.now() - startTime)
